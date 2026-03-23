@@ -123,7 +123,7 @@ try {
 
     <div class="header-container">
         <h1>User Management</h1>
-        <a href="owner_dashboard.php" class="back-link">← Back to Dashboard</a>
+        <a href="Business Owner\owner_dashboard.php" class="back-link">← Back to Dashboard</a>
     </div>
 
     <div class="table-container">
@@ -148,7 +148,7 @@ try {
                     </td>
                     <td>
                         <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                            <a href="delete_user.php?id=<?php echo $user['id']; ?>" 
+                            <a href="Business Owner\delete_user.php?id=<?php echo $user['id']; ?>" 
                                class="btn-delete" 
                                onclick="return confirm('Are you sure you want to remove this user?')">
                                Remove
