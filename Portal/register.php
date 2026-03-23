@@ -1,16 +1,5 @@
 <?php
-// Database connection
-$host = 'localhost';
-$dbname = 'inventory_schema';
-$username_db = 'root';
-$password_db = '';
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username_db, $password_db);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
-}
+include "../includes/db.php"; 
 
 $message = "";
 $success = false;
@@ -21,10 +10,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $role = $_POST['role'];
 
     try {
+        // Saving as plain text just like your original version
         $stmt = $pdo->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
         $stmt->execute([$user, $pass, $role]);
         
-        // Flag for the JavaScript redirect
         $success = true;
         $message = "Account created successfully! Redirecting to login...";
     } catch (PDOException $e) {
@@ -120,46 +109,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </style>
 </head>
 <body>
-    <div class="form-container">
-        <h2>Register</h2>
-
-        <?php if($message): ?>
-            <div class="message <?php echo $success ? 'success' : 'error'; ?>">
-                <?php echo $message; ?>
-            </div>
-        <?php endif; ?>
+    <div class="container">
+        <h2>Create Account</h2>
+        <?php if($message) echo "<p>$message</p>"; ?>
         
         <form method="POST">
-            <div class="input-group">
-                <label>Username</label>
-                <input type="text" name="username" placeholder="Enter username" required>
-            </div>
-
-            <div class="input-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Create password" required>
-            </div>
-
-            <div class="input-group">
-                <label>Access Role</label>
-                <select name="role" required>
-                    <option value="staff">Farm Staff</option>
-                    <option value="owner">Business Owner</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn">Create Account</button>
+            <input type="text" name="username" placeholder="Username" required><br><br>
+            <input type="password" name="password" placeholder="Password" required><br><br>
+            <select name="role" required>
+                <option value="staff">Farm Staff</option>
+                <option value="owner">Business Owner</option>
+            </select><br><br>
+            <button type="submit" class="btn">Register</button>
         </form>
-
-        <a href="login.php" class="login-link">Already have an account? Login</a>
+        <a href="login.php" class="logout-link">Back to Login</a>
     </div>
 
     <?php if($success): ?>
     <script>
-        // Wait 2 seconds so the user can see the success message, then redirect
-        setTimeout(function() {
-            window.location.href = "login.php?msg=account_created";
-        }, 2000);
+        setTimeout(function() { window.location.href = "login.php"; }, 2000);
     </script>
     <?php endif; ?>
 </body>

@@ -1,10 +1,29 @@
 <?php
 session_start();
+include "../includes/db.php"; 
 
-// Security check: Ensure only owners can access this page
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'owner') {
-    header("Location: login.php");
+// 1. SECURITY GATE: Only allow logged-in Owners
+if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'owner') {
+    header("Location: ../portal/login.php?error=unauthorized");
     exit;
+}
+
+// 2. FETCH QUICK STATS (Summary for the Boss)
+try {
+    // Total Eggs Harvested Today
+    $stmt1 = $pdo->query("SELECT SUM(total_harvest) FROM egg_inventory WHERE date_collected = CURDATE()");
+    $today_harvest = $stmt1->fetchColumn() ?: 0;
+
+    // Total Sales Amount (Current Month)
+    $stmt2 = $pdo->query("SELECT SUM(total_amount) FROM egg_sales WHERE MONTH(date_sold) = MONTH(CURDATE())");
+    $monthly_sales = $stmt2->fetchColumn() ?: 0;
+
+    // Recent Mortality Count
+    $stmt3 = $pdo->query("SELECT SUM(mortality_count) FROM flock_status WHERE report_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
+    $weekly_mortality = $stmt3->fetchColumn() ?: 0;
+
+} catch (PDOException $e) {
+    $error = $e->getMessage();
 }
 ?>
 
@@ -12,126 +31,72 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'owner') {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Owner Dashboard - Egg Ledger</title>
+    <title>Owner Command Center - Egg Ledger</title>
     <style>
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background-color: #fdfaf1; 
-            color: #5d4037; 
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f6; margin: 0; display: flex; }
         
-        .dashboard-card {
-            background: white;
-            padding: 40px;
-            border-radius: 50px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            text-align: center;
-            border: 4px solid #ffcc33;
-            max-width: 500px;
-            width: 90%;
-        }
+        /* Sidebar Navigation */
+        .sidebar { width: 250px; background: #2c3e50; color: white; height: 100vh; padding: 20px; position: fixed; }
+        .sidebar h2 { color: #f1c40f; font-size: 1.2em; text-align: center; margin-bottom: 30px; }
+        .sidebar a { display: block; color: #bdc3c7; padding: 15px; text-decoration: none; border-radius: 10px; margin-bottom: 5px; }
+        .sidebar a:hover { background: #34495e; color: white; }
+        .sidebar a.active { background: #f1c40f; color: #2c3e50; font-weight: bold; }
 
-        .role-badge {
-            background-color: #ff9800;
-            color: white;
-            padding: 6px 18px;
-            border-radius: 20px;
-            font-size: 0.75em;
-            text-transform: uppercase;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-
-        h1 { color: #ff9800; margin: 10px 0; font-size: 1.8em; }
-        .welcome-msg { color: #795548; margin-bottom: 30px; font-style: italic; }
+        /* Main Content Area */
+        .main-content { margin-left: 290px; padding: 40px; width: 100%; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         
-        .menu-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-        
-        .btn { 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 18px; 
-            text-decoration: none; 
-            background: #ffcc33; 
-            color: #5d4037; 
-            font-weight: bold;
-            border-radius: 30px;
-            transition: all 0.3s ease;
-            border: 2px solid transparent;
-        }
-        
-        .btn:hover {
-            background: #fff;
-            border: 2px solid #ffcc33;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(255, 204, 51, 0.4);
-        }
+        /* Stats Cards */
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); border-top: 5px solid #f1c40f; }
+        .card h3 { margin: 0; color: #7f8c8d; font-size: 0.9em; text-transform: uppercase; }
+        .card .value { font-size: 2em; font-weight: bold; color: #2c3e50; margin-top: 10px; }
 
-        .btn-secondary {
-            background: #8bc34a; /* Farm Green */
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #fff;
-            border: 2px solid #8bc34a;
-            color: #8bc34a;
-            box-shadow: 0 5px 15px rgba(139, 195, 74, 0.4);
-        }
-
-        .footer-links {
-            margin-top: 30px;
-            border-top: 1px solid #eee;
-            padding-top: 20px;
-        }
-
-        .logout-link {
-            color: #d32f2f;
-            text-decoration: none;
-            font-size: 0.9em;
-            font-weight: 600;
-        }
-
-        .logout-link:hover { text-decoration: underline; }
+        .logout-btn { color: #e74c3c; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="dashboard-card">
-        <div class="role-badge">Administrator Access</div>
-        <h1>Master Panel</h1>
-        <p class="welcome-msg">Logged in as: <strong><?php echo htmlspecialchars($_SESSION['username']); ?></strong></p>
+<div class="sidebar">
+    <h2>🥚 EggLedger Pro</h2>
+    <a href="owner_dashboard.php" class="active">📊 Dashboard</a>
+    <a href="manage_inventory.php">📦 Egg Inventory</a>
+    <a href="manage_sales.php">💰 Sales Reports</a>
+    <a href="manage_flock.php">🐔 Flock Health</a>
+    <a href="manage_users.php">👥 Staff Accounts</a>
 
-        <div class="menu-grid">
-            <a href="inventory_view.php" class="btn">
-                📊 View Farm Inventory
-            </a>
-            
-            <a href="Business Owner\user_list.php" class="btn btn-secondary">
-                👥 Manage User Accounts
-            </a>
-            
-            <a href="reports.php" class="btn" style="background: #f1f1f1; color: #999; cursor: not-allowed;">
-                📈 Sales Reports (Coming Soon)
-            </a>
+    <hr style="border: 1px solid #34495e; margin: 15px 0;">
+    <a href="generate_report.php" style="background: #27ae60; color: white; font-weight: bold;">📋 Generate Monthly Report</a>
+    
+    <a href="../portal/logout_confirm.php" class="logout-btn">Logout</a>
+</div>
+
+<div class="main-content">
+    <div class="header">
+        <h1>Hello, <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
+        <p><?php echo date('l, F j, Y'); ?></p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="card">
+            <h3>Harvest (Today)</h3>
+            <div class="value"><?php echo number_format($today_harvest); ?> <small>Eggs</small></div>
         </div>
-
-        <div class="footer-links">
-            <a href="logout_confirm.php" class="logout-link">Secure Logout</a>
+        <div class="card" style="border-top-color: #27ae60;">
+            <h3>Revenue (This Month)</h3>
+            <div class="value">₱<?php echo number_format($monthly_sales, 2); ?></div>
+        </div>
+        <div class="card" style="border-top-color: #e67e22;">
+            <h3>Flock Mortality (7 Days)</h3>
+            <div class="value"><?php echo $weekly_mortality; ?> <small>Birds</small></div>
         </div>
     </div>
+
+    <div class="card" style="border-top: none;">
+        <h3>System Overview</h3>
+        <p>Use the sidebar to manage your farm data. As the Owner, you have full authority to <strong>edit or delete</strong> any records entered by the staff.</p>
+    </div>
+</div>
 
 </body>
 </html>

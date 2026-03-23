@@ -66,19 +66,21 @@ session_start();
             
             <div class="nav-links">
                 <?php 
-                    // Redirect based on the role assigned during login
-                    $target_page = ($_SESSION['role'] === 'owner') ? 'owner_dashboard.php' : 'staff_dashboard.php'; 
+                    // Updated paths to use forward slashes and correct folder names
+                    $target_page = ($_SESSION['role'] === 'owner') 
+                        ? 'Business Owner/owner_dashboard.php' 
+                        : 'Farm Staff/staff_dashboard.php'; 
                 ?>
-                <a href="<?php echo $target_page; ?>" class="btn">Open Inventory</a>
+                <a href="<?php echo $target_page; ?>" class="btn">Open Dashboard</a>
                 
-                <a href="logout_confirm.php" class="logout-link">Logout</a>
+                <a href="portal/logout_confirm.php">Logout</a>
             </div>
 
         <?php else: ?>
             <p>Ready to record today's harvest?</p>
             <div class="nav-links">
-                <a href="login.php" class="btn">Login</a>
-                <a href="register.php" class="btn btn-register">Create Account</a>
+                <a href="portal/login.php" class="btn">Login</a>
+                <a href="portal/register.php" class="btn btn-register">Create Account</a>
             </div>
         <?php endif; ?>
     </div>

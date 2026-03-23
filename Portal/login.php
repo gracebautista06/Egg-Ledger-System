@@ -1,18 +1,6 @@
 <?php
 session_start();
-
-// Database connection
-$host = 'localhost';
-$dbname = 'inventory_schema';
-$username_db = 'root';
-$password_db = '';
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username_db, $password_db);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
-}
+include "../includes/db.php"; 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $user = $_POST['username'];
@@ -22,25 +10,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->execute([$user]);
     $user_data = $stmt->fetch();
 
-    // FIXED: Changed password_verify() to a direct string comparison (===)
+    // SIMPLE COMPARISON (No hashing)
     if ($user_data && $pass === $user_data['password']) {
         $_SESSION['user_id'] = $user_data['id'];
         $_SESSION['username'] = $user_data['username'];
         $_SESSION['role'] = $user_data['role'];
 
         if ($user_data['role'] == 'owner') {
-            header("Location: owner_dashboard.php");
+            header("Location: ../Business Owner/owner_dashboard.php");
         } else {
-            header("Location: staff_dashboard.php");
+            header("Location: ../Farm Staff/staff_dashboard.php");
         }
         exit;
     } else {
-        $error = "Incorrect username or password.";
+        $error = "Invalid username or password!";
     }
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -86,25 +72,58 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
         .btn:hover { background: #ffb300; }
         .error { color: #d32f2f; font-size: 0.9em; }
+
+        .alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    font-size: 0.9em;
+    text-align: center;
+    font-weight: bold;
+}
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
     </style>
 </head>
 <body>
-
     <div class="container">
-        <h2>Egg Ledger Login</h2>
+        <h2>Login</h2>
+        <?php if(isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
         
-        <?php if(isset($error)) echo "<p class='error'>$error</p>"; ?>
+<?php if (isset($_GET['msg'])): ?>
+    <div class="alert alert-success">
+        <?php 
+            if ($_GET['msg'] == 'logged_out') echo "Successfully logged out. See you soon!";
+            if ($_GET['msg'] == 'registered') echo "Account created! Please log in.";
+        ?>
+    </div>
+<?php endif; ?>
+
+<?php if (isset($_GET['error'])): ?>
+    <div class="alert alert-danger">
+        <?php 
+            if ($_GET['error'] == 'invalid') echo "Invalid username or password.";
+            if ($_GET['error'] == 'expired') echo "Session expired. Please log in again.";
+            if ($_GET['error'] == 'unauthorized') echo "Access denied: Owners only!";
+        ?>
+    </div>
+<?php endif; ?>
+
         
         <form method="POST">
-            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="text" name="username" placeholder="Username" required><br><br>
             <input type="password" name="password" placeholder="Password" required><br><br>
             <button type="submit" class="btn">Login</button>
         </form>
-        
-        <p style="font-size: 0.8em; margin-top: 20px;">
-            <a href="register.php" style="color: #8bc34a;">Create an Account</a>
-        </p>
+        <a href="register.php" class="logout-link">Create Account</a>
     </div>
-
 </body>
 </html>

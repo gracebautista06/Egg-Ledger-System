@@ -1,11 +1,24 @@
 <?php
 session_start();
 
-// If not logged in, just go to index
-if (!isset($_SESSION['user_id'])) {
-    header("Location: index.php");
-    exit;
+// 1. Unset all session variables
+$_SESSION = array();
+
+// 2. If it's desired to kill the session, also delete the session cookie.
+if (ini_get("session.use_cookies")) {
+    $params = session_get_cookie_params();
+    setcookie(session_name(), '', time() - 42000,
+        $params["path"], $params["domain"],
+        $params["secure"], $params["httponly"]
+    );
 }
+
+// 3. Finally, destroy the session.
+session_destroy();
+
+// 4. Redirect to login with a "logged_out" message
+header("Location: login.php?msg=logged_out");
+exit;
 ?>
 
 <!DOCTYPE html>
@@ -61,15 +74,14 @@ if (!isset($_SESSION['user_id'])) {
 <body>
 
     <div class="container">
-        <h2>Are you sure?</h2>
-        <p>Do you really want to log out of the Egg Ledger system?</p>
-        
-        <div class="btn-group">
-            <a href="logout_action.php" class="btn btn-yes">Yes, Logout</a>
-            
-            <a href="<?php echo ($_SESSION['role'] == 'owner') ? 'owner_dashboard.php' : 'staff_dashboard.php'; ?>" class="btn btn-no">No, Stay</a>
-        </div>
+    <h2>Logging out?</h2>
+    <p>Are you sure you want to leave the Egg Ledger?</p>
+    <div class="btn-group">
+        <a href="logout.php" class="btn">Yes, Logout</a>
+
+        <a href="javascript:history.back()" class="btn btn-no">No, Stay</a>
     </div>
+</div>
 
 </body>
 </html>

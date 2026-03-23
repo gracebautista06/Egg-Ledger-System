@@ -1,9 +1,10 @@
 <?php
 session_start();
 
-// Security check: Ensure only staff can access this page
+// 1. SECURITY GATE: If not logged in OR if the user is NOT a staff member, kick them out
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'staff') {
-    header("Location: login.php");
+    // Redirect back to login in the portal folder
+    header("Location: ../portal/login.php?error=access_denied");
     exit;
 }
 ?>
@@ -14,7 +15,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'staff') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Staff Dashboard - Egg Ledger</title>
+    <link rel="stylesheet" href="../css/style.css">
     <style>
+        /* Custom dashboard layout */
         body { 
             font-family: 'Segoe UI', sans-serif; 
             background-color: #fdfaf1; 
@@ -75,17 +78,21 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'staff') {
 </head>
 <body>
 
-    <div class="container">
-        <div class="egg-icon"></div>
-        <h1>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
-        <p>You are logged in as <strong>Farm Staff</strong>.</p>
-        <p>Ready to record the harvest?</p>
+   <div class="container">
+    <div class="egg-icon"></div>
+    <h1>Welcome, <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
+    
+    <div class="nav-actions">
+        <a href="inventory_input.php" class="btn">🥚 Record Harvest</a>
+        <a href="record_sales.php" class="btn" style="background: #fb8c00;">💰 Record Sale</a>
+        <a href="flock_status.php" class="btn" style="background: #009688;">🐔 Flock Health</a>
 
-        <div class="nav-actions">
-            <a href="inventory_input.php" class="btn">Continue to Inventory</a>
-        </div>
+        <hr style="border: 1px solid #eee; margin: 25px 0;">
 
-        <a href="logout_confirm.php" class="logout-btn">Logout from System</a>
+        <a href="view_my_records.php" class="btn-view">📄 View My History & Reports</a>
+    </div>
+
+    <a href="../portal/logout_confirm.php" class="logout-btn">Logout from System</a>
     </div>
 
 </body>
